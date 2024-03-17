@@ -1,39 +1,19 @@
 package main
 
 import (
-	"flag"
-	"fmt"
-	"log"
-	"net"
-
-	"google.golang.org/grpc"
-	. "securechat-server/client_server"
-	pb "securechat-server/grpc"
-	. "securechat-server/server"
-)
-
-var (
-	port = flag.Int("port", 50051, "The server port")
+	. "securechat-server/client_stub"
+	server "securechat-server/server"
+	"securechat-server/server/types"
 )
 
 func main() {
-	// to sort out merge code
-	// client_server branch
-	flag.Parse()
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	gs := grpc.NewServer()
-	pb.RegisterClientServerCommsServer(gs, &GRPCServer{})
-	log.Printf("server listening at %v", lis.Addr())
-	if err := gs.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
-	// dht branch
-	s := NewServer("localhost:50051")
+	// Make channel for sending requests and receiving responses from client-server GRPC stub
+	requests := make(chan types.Request, 10)
+	response := make(chan types.Record, 10)
 
-	record := s.Get("test")
+	s := server.NewServer(":50051", requests, response)
 
-	println(record.Address)
+	go NewGRPCClientServer(requests, response)
+
+	s.Serve()
 }
