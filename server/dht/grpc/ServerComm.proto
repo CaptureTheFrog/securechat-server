@@ -13,11 +13,9 @@ service ServerComms{
 
   rpc changePredecessor(ChangePredecessor) returns (Response);
 
-  rpc hi(test) returns (test);
-}
+  rpc get(ID) returns (Record);
 
-message test{
-  required string message = 1;
+  rpc put(Record) returns (Response);
 }
 
 // ID for server. Contains address and SHA-1 hash of address
@@ -37,4 +35,10 @@ message ChangePredecessor{
 }
 
 message Response{}
+
+message Record{
+  required string username = 1;
+  required string address = 2;
+  required bytes publicKey = 3;
+}
 

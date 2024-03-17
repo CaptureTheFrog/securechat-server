@@ -27,7 +27,8 @@ type ServerCommsClient interface {
 	GetPredecessor(ctx context.Context, in *ID, opts ...grpc.CallOption) (*ID, error)
 	ChangeSuccessor(ctx context.Context, in *ChangeSuccessor, opts ...grpc.CallOption) (*Response, error)
 	ChangePredecessor(ctx context.Context, in *ChangePredecessor, opts ...grpc.CallOption) (*Response, error)
-	Hi(ctx context.Context, in *Test, opts ...grpc.CallOption) (*Test, error)
+	Get(ctx context.Context, in *ID, opts ...grpc.CallOption) (*Record, error)
+	Put(ctx context.Context, in *Record, opts ...grpc.CallOption) (*Response, error)
 }
 
 type serverCommsClient struct {
@@ -83,9 +84,18 @@ func (c *serverCommsClient) ChangePredecessor(ctx context.Context, in *ChangePre
 	return out, nil
 }
 
-func (c *serverCommsClient) Hi(ctx context.Context, in *Test, opts ...grpc.CallOption) (*Test, error) {
-	out := new(Test)
-	err := c.cc.Invoke(ctx, "/main.ServerComms/hi", in, out, opts...)
+func (c *serverCommsClient) Get(ctx context.Context, in *ID, opts ...grpc.CallOption) (*Record, error) {
+	out := new(Record)
+	err := c.cc.Invoke(ctx, "/main.ServerComms/get", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serverCommsClient) Put(ctx context.Context, in *Record, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/main.ServerComms/put", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +111,8 @@ type ServerCommsServer interface {
 	GetPredecessor(context.Context, *ID) (*ID, error)
 	ChangeSuccessor(context.Context, *ChangeSuccessor) (*Response, error)
 	ChangePredecessor(context.Context, *ChangePredecessor) (*Response, error)
-	Hi(context.Context, *Test) (*Test, error)
+	Get(context.Context, *ID) (*Record, error)
+	Put(context.Context, *Record) (*Response, error)
 	mustEmbedUnimplementedServerCommsServer()
 }
 
@@ -124,8 +135,11 @@ func (UnimplementedServerCommsServer) ChangeSuccessor(context.Context, *ChangeSu
 func (UnimplementedServerCommsServer) ChangePredecessor(context.Context, *ChangePredecessor) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangePredecessor not implemented")
 }
-func (UnimplementedServerCommsServer) Hi(context.Context, *Test) (*Test, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Hi not implemented")
+func (UnimplementedServerCommsServer) Get(context.Context, *ID) (*Record, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedServerCommsServer) Put(context.Context, *Record) (*Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Put not implemented")
 }
 func (UnimplementedServerCommsServer) mustEmbedUnimplementedServerCommsServer() {}
 
@@ -230,20 +244,38 @@ func _ServerComms_ChangePredecessor_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ServerComms_Hi_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Test)
+func _ServerComms_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ID)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ServerCommsServer).Hi(ctx, in)
+		return srv.(ServerCommsServer).Get(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/main.ServerComms/hi",
+		FullMethod: "/main.ServerComms/get",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerCommsServer).Hi(ctx, req.(*Test))
+		return srv.(ServerCommsServer).Get(ctx, req.(*ID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ServerComms_Put_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Record)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServerCommsServer).Put(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.ServerComms/put",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServerCommsServer).Put(ctx, req.(*Record))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -276,8 +308,12 @@ var ServerComms_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ServerComms_ChangePredecessor_Handler,
 		},
 		{
-			MethodName: "hi",
-			Handler:    _ServerComms_Hi_Handler,
+			MethodName: "get",
+			Handler:    _ServerComms_Get_Handler,
+		},
+		{
+			MethodName: "put",
+			Handler:    _ServerComms_Put_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
