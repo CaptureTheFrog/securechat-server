@@ -2,11 +2,8 @@ package main
 
 import (
 	"flag"
-	"log"
-	. "securechat-server/globals"
-	. "securechat-server/server"
-	"securechat-server/server/dht"
 	. "securechat-server/client_stub"
+	. "securechat-server/globals"
 	server "securechat-server/server"
 	"securechat-server/server/types"
 )
@@ -19,15 +16,11 @@ func main() {
 
 	flag.Parse()
 
-	NewServer(ServerAddress)
-
-	id := dht.NewID(ServerAddress)
-	log.Printf("ID: %x", id.ID)
 	// Make channel for sending requests and receiving responses from client-server GRPC stub
 	requests := make(chan types.Request, 10)
 	response := make(chan types.Record, 10)
 
-	s := server.NewServer(":50051", requests, response)
+	s := server.NewServer(ServerAddress, requests, response)
 
 	go NewGRPCClientServer(requests, response)
 

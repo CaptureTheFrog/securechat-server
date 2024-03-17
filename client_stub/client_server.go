@@ -10,8 +10,8 @@ import (
 
 type GRPCServer struct {
 	grpc.UnimplementedClientServerCommsServer
-	Requests <-chan requests.Request
-	Response chan<- requests.Record
+	Requests chan<- requests.Request
+	Response <-chan requests.Record
 }
 
 func (s *GRPCServer) SignUp(ctx context.Context, request *grpc.SignUpRequest) (*grpc.SignUpResponse, error) {
@@ -30,7 +30,7 @@ func (s *GRPCServer) FindUser(ctx context.Context, request *grpc.FindUserRequest
 	return &grpc.FindUserResponse{}, nil
 }
 
-func NewGRPCClientServer(requests <-chan requests.Request, response chan<- requests.Record) {
+func NewGRPCClientServer(requests chan<- requests.Request, response <-chan requests.Record) {
 	server := GRPCServer{Requests: requests, Response: response}
 	s := ggrpc.NewServer()
 
