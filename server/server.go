@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+	"securechat-server/globals"
 	"securechat-server/server/dht"
 	"securechat-server/server/types"
 )
@@ -11,12 +13,14 @@ type Server struct {
 	Response chan<- types.Record
 }
 
-func NewServer(addr string, requests <-chan types.Request, response chan<- types.Record) *Server {
+func NewServer(requests <-chan types.Request, response chan<- types.Record) *Server {
+
+	serverAddress := fmt.Sprintf("%s:%d", globals.ServerAddress, globals.GRPCPort)
 
 	// Start the internal DHT server on a separate goroutine
-	go dht.NewDHTServer(addr)
+	go dht.NewDHTServer(serverAddress)
 
-	return &Server{addr: addr, Requests: requests, Response: response}
+	return &Server{addr: serverAddress, Requests: requests, Response: response}
 }
 
 // Add a record to the User database
