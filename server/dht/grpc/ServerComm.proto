@@ -3,7 +3,6 @@ package main;
 option go_package = "securechat-server/grpc";
 
 service ServerComms{
-  rpc join(ID) returns (ID);
 
   rpc getSuccessor(ID) returns (ID);
 
@@ -39,6 +38,7 @@ message Response{}
 message Record{
   required string username = 1;
   required string address = 2;
-  required bytes publicKey = 3;
+  required bytes publicKeyLogin = 3;
+  required bytes publicKeyChat = 4;
 }
 

@@ -22,7 +22,6 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ServerCommsClient interface {
-	Join(ctx context.Context, in *ID, opts ...grpc.CallOption) (*ID, error)
 	GetSuccessor(ctx context.Context, in *ID, opts ...grpc.CallOption) (*ID, error)
 	GetPredecessor(ctx context.Context, in *ID, opts ...grpc.CallOption) (*ID, error)
 	ChangeSuccessor(ctx context.Context, in *ChangeSuccessor, opts ...grpc.CallOption) (*Response, error)
@@ -37,15 +36,6 @@ type serverCommsClient struct {
 
 func NewServerCommsClient(cc grpc.ClientConnInterface) ServerCommsClient {
 	return &serverCommsClient{cc}
-}
-
-func (c *serverCommsClient) Join(ctx context.Context, in *ID, opts ...grpc.CallOption) (*ID, error) {
-	out := new(ID)
-	err := c.cc.Invoke(ctx, "/main.ServerComms/join", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *serverCommsClient) GetSuccessor(ctx context.Context, in *ID, opts ...grpc.CallOption) (*ID, error) {
@@ -106,7 +96,6 @@ func (c *serverCommsClient) Put(ctx context.Context, in *Record, opts ...grpc.Ca
 // All implementations must embed UnimplementedServerCommsServer
 // for forward compatibility
 type ServerCommsServer interface {
-	Join(context.Context, *ID) (*ID, error)
 	GetSuccessor(context.Context, *ID) (*ID, error)
 	GetPredecessor(context.Context, *ID) (*ID, error)
 	ChangeSuccessor(context.Context, *ChangeSuccessor) (*Response, error)
@@ -120,9 +109,6 @@ type ServerCommsServer interface {
 type UnimplementedServerCommsServer struct {
 }
 
-func (UnimplementedServerCommsServer) Join(context.Context, *ID) (*ID, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Join not implemented")
-}
 func (UnimplementedServerCommsServer) GetSuccessor(context.Context, *ID) (*ID, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSuccessor not implemented")
 }
@@ -152,24 +138,6 @@ type UnsafeServerCommsServer interface {
 
 func RegisterServerCommsServer(s grpc.ServiceRegistrar, srv ServerCommsServer) {
 	s.RegisterService(&ServerComms_ServiceDesc, srv)
-}
-
-func _ServerComms_Join_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ID)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ServerCommsServer).Join(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/main.ServerComms/join",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerCommsServer).Join(ctx, req.(*ID))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _ServerComms_GetSuccessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -287,10 +255,6 @@ var ServerComms_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "main.ServerComms",
 	HandlerType: (*ServerCommsServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "join",
-			Handler:    _ServerComms_Join_Handler,
-		},
 		{
 			MethodName: "getSuccessor",
 			Handler:    _ServerComms_GetSuccessor_Handler,
