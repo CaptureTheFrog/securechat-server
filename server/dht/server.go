@@ -51,17 +51,20 @@ func NewDHTServer(addr string) {
 		log.Fatalf("Invalid method: %s", globals.Method)
 	}
 
+	// Start maintainer
+	go server.Maintain()
+
 	// Start listening on the server
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 }
 
-func (s Server) Successor() *ID {
+func (s *Server) Successor() *ID {
 	return s.fingerTable.getEntry(1)
 }
 
-func (s Server) Predecessor() *ID {
+func (s *Server) Predecessor() *ID {
 	return s.predecessor
 }
 
@@ -78,7 +81,7 @@ If there is only one server in the network, the server's successor is itself and
 Before joining: nil -> server -> server
 After joining: new server -> server -> new server
 */
-func (s Server) JoinNetwork() {
+func (s *Server) JoinNetwork() {
 	// ask the server at the address to find the successor of the new server
 	client, err := CreateGRPCClient(globals.JoinAddress)
 	if err != nil {
@@ -141,6 +144,6 @@ func (s Server) JoinNetwork() {
 // CreateNetwork
 // This function is called when the server is the first in the network.
 // It creates the network and adds itself to the finger table as its own successor.
-func (s Server) CreateNetwork() {
+func (s *Server) CreateNetwork() {
 	s.fingerTable.addEntry(1, s.id)
 }

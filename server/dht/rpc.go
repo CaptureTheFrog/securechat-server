@@ -8,16 +8,11 @@ import (
 	"time"
 )
 
-func (s Server) Join(ctx context.Context, id *pb.ID) (*pb.ID, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 // GetSuccessor
 /*
  Returns successor of the ID passed as parameter
 */
-func (s Server) GetSuccessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
+func (s *Server) GetSuccessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -29,7 +24,7 @@ func (s Server) GetSuccessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
 	}
 
 	// If the request is asking for this node's successor
-	if s.id.Equals(IDFromGRPC(id)) {
+	if *id.Address == "" || s.id.Equals(IDFromGRPC(id)) {
 		return &pb.ID{
 			Address: &succ.name,
 			Id:      succ.ID[:],
@@ -58,14 +53,14 @@ func (s Server) GetSuccessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
 	return successor, nil
 }
 
-func (s Server) GetPredecessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
+func (s *Server) GetPredecessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	pred := s.predecessor
 
 	// If the request is asking for this node's predecessor
-	if s.id.Equals(IDFromGRPC(id)) {
+	if s.id.Equals(IDFromGRPC(id)) || *id.Address == "" {
 		if pred == nil {
 			return nil, nil
 		}
@@ -93,12 +88,12 @@ func (s Server) GetPredecessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
 	return predecessor, nil
 }
 
-func (s Server) ChangeSuccessor(ctx context.Context, successor *pb.ChangeSuccessor) (*pb.Response, error) {
+func (s *Server) ChangeSuccessor(ctx context.Context, successor *pb.ChangeSuccessor) (*pb.Response, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// If the request is asking to change this node's successor
-	if s.id.Equals(IDFromGRPC(successor.Id)) {
+	if s.id.Equals(IDFromGRPC(successor.Id)) || *successor.Id.Address == "" {
 		// Change successor
 		s.fingerTable.addEntry(1, IDFromGRPC(successor.NewSuccessor))
 		return &pb.Response{}, nil
@@ -119,12 +114,12 @@ func (s Server) ChangeSuccessor(ctx context.Context, successor *pb.ChangeSuccess
 	return changeSuccessor, nil
 }
 
-func (s Server) ChangePredecessor(ctx context.Context, predecessor *pb.ChangePredecessor) (*pb.Response, error) {
+func (s *Server) ChangePredecessor(ctx context.Context, predecessor *pb.ChangePredecessor) (*pb.Response, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// If the request is asking to change this node's predecessor
-	if s.id.Equals(IDFromGRPC(predecessor.Id)) {
+	if *predecessor.Id.Address == "" || s.id.Equals(IDFromGRPC(predecessor.Id)) {
 		// Change predecessor
 		s.predecessor = IDFromGRPC(predecessor.NewPredecessor)
 		return &pb.Response{}, nil
@@ -145,7 +140,7 @@ func (s Server) ChangePredecessor(ctx context.Context, predecessor *pb.ChangePre
 	return changePredecessor, nil
 }
 
-func (s Server) Get(ctx context.Context, id *pb.ID) (*pb.Record, error) {
+func (s *Server) Get(ctx context.Context, id *pb.ID) (*pb.Record, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -153,7 +148,7 @@ func (s Server) Get(ctx context.Context, id *pb.ID) (*pb.Record, error) {
 	panic("implement me")
 }
 
-func (s Server) Put(ctx context.Context, record *pb.Record) (*pb.Response, error) {
+func (s *Server) Put(ctx context.Context, record *pb.Record) (*pb.Response, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
