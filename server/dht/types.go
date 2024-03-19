@@ -26,6 +26,10 @@ func NewID(name string) *ID {
 }
 
 func IDFromGRPC(id *grpc.ID) *ID {
+	if *id.Address == "" {
+		return &ID{}
+	}
+
 	return &ID{ID: [20]byte(id.Id), name: *id.Address}
 }
 
@@ -40,7 +44,13 @@ func (id *ID) IsBetween(start *ID, end *ID) bool {
 		return bytes.Compare(start.ID[:], id.ID[:]) < 0 && bytes.Compare(id.ID[:], end.ID[:]) < 0
 	}
 
-	// If the start ID is greater than the end ID, or they are equal
+	// If the start ID is greater than the end ID,
+	// then the ID is between them if it is greater than the start or less than the end.
+	if bytes.Compare(start.ID[:], end.ID[:]) > 0 {
+		return bytes.Compare(start.ID[:], id.ID[:]) < 0 || bytes.Compare(id.ID[:], end.ID[:]) < 0
+	}
+
+	// If they are equal
 	return false
 }
 
