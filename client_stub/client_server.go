@@ -2,9 +2,11 @@ package client_stub
 
 import (
 	"context"
+	"fmt"
 	ggrpc "google.golang.org/grpc"
 	"net"
 	"securechat-server/client_stub/grpc"
+	"securechat-server/globals"
 	requests "securechat-server/server/types"
 )
 
@@ -36,7 +38,7 @@ func NewGRPCClientServer(requests chan<- requests.Request, response <-chan reque
 
 	grpc.RegisterClientServerCommsServer(s, &server)
 
-	lis, err := net.Listen("tcp", ":50050")
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", globals.ClientPort))
 	if err != nil {
 		panic(err)
 	}

@@ -5,4 +5,5 @@ var (
 	Method        string
 	JoinAddress   string
 	ServerAddress string
+	ClientPort    int
 )

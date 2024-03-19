@@ -13,6 +13,7 @@ func main() {
 	flag.StringVar(&JoinAddress, "address", "", "JoinAddress of the server to join the network from")
 	flag.IntVar(&GRPCPort, "grpc-port", 50051, "Port for the gRPC server to listen on")
 	flag.StringVar(&ServerAddress, "server-address", "127.0.0.1:50051", "Address of this server")
+	flag.IntVar(&ClientPort, "client-port", 50050, "Port for the gRPC client to connect to")
 
 	flag.Parse()
 
