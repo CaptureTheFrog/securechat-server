@@ -18,7 +18,9 @@ func (s Server) Join(ctx context.Context, id *pb.ID) (*pb.ID, error) {
  Returns successor of the ID passed as parameter
 */
 func (s Server) GetSuccessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
-	println("1")
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	succ := s.Successor()
 
 	// If this node's successor is itself (it's the only node in the network)
@@ -28,13 +30,12 @@ func (s Server) GetSuccessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
 
 	// If the request is asking for this node's successor
 	if s.id.Equals(IDFromGRPC(id)) {
-		println("2")
 		return &pb.ID{
 			Address: &succ.name,
 			Id:      succ.ID[:],
 		}, nil
 	}
-	println("no")
+
 	// If the ID sits between this node and its successor
 	// return successor
 	if IDFromGRPC(id).IsBetween(s.id, succ) {
@@ -54,11 +55,13 @@ func (s Server) GetSuccessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
 		return nil, err
 	}
 
-	println("3")
 	return successor, nil
 }
 
 func (s Server) GetPredecessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	pred := s.predecessor
 
 	// If the request is asking for this node's predecessor
@@ -91,6 +94,9 @@ func (s Server) GetPredecessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
 }
 
 func (s Server) ChangeSuccessor(ctx context.Context, successor *pb.ChangeSuccessor) (*pb.Response, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	// If the request is asking to change this node's successor
 	if s.id.Equals(IDFromGRPC(successor.Id)) {
 		// Change successor
@@ -114,6 +120,9 @@ func (s Server) ChangeSuccessor(ctx context.Context, successor *pb.ChangeSuccess
 }
 
 func (s Server) ChangePredecessor(ctx context.Context, predecessor *pb.ChangePredecessor) (*pb.Response, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	// If the request is asking to change this node's predecessor
 	if s.id.Equals(IDFromGRPC(predecessor.Id)) {
 		// Change predecessor
@@ -137,11 +146,17 @@ func (s Server) ChangePredecessor(ctx context.Context, predecessor *pb.ChangePre
 }
 
 func (s Server) Get(ctx context.Context, id *pb.ID) (*pb.Record, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	//TODO implement me
 	panic("implement me")
 }
 
 func (s Server) Put(ctx context.Context, record *pb.Record) (*pb.Response, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	//TODO implement me
 	panic("implement me")
 }

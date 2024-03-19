@@ -7,12 +7,14 @@ import (
 	"net"
 	"securechat-server/globals"
 	pb "securechat-server/server/dht/grpc"
+	"sync"
 )
 
 type Server struct {
 	id          *ID
 	predecessor *ID
 	fingerTable *FingerTable
+	mu          sync.Mutex
 	pb.UnimplementedServerCommsServer
 }
 
