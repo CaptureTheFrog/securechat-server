@@ -82,6 +82,9 @@ Before joining: nil -> server -> server
 After joining: new server -> server -> new server
 */
 func (s *Server) JoinNetwork() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	// ask the server at the address to find the successor of the new server
 	client, err := CreateGRPCClient(globals.JoinAddress)
 	if err != nil {
@@ -103,8 +106,9 @@ func (s *Server) JoinNetwork() {
 	}
 	var predecessor *ID
 
-	// If there is only one server in the network (the pre-existing server is its own successor)
+	// If there is only one server in the network (the pre-existing server is its own successor and predecessor)
 	if globals.JoinAddress == successor.name {
+		println("only one server in network")
 		// The pre-existing server will be this new server's predecessor and successor
 		predecessor = successor
 	} else {
