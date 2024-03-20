@@ -36,7 +36,7 @@ func (r *Records) GetAll() map[*types.ID]Record {
 // Record is the type of record that is stored in the internal DHT server.
 type Record struct {
 	Username       string
-	Address        string
+	Address        uint32
 	PublicKeyLogin []byte
 	PublicKeyChat  []byte
 }
@@ -49,7 +49,7 @@ func (r *Record) Print() {
 func NewRecord() *Record {
 	return &Record{
 		Username:       "",
-		Address:        "",
+		Address:        0,
 		PublicKeyLogin: make([]byte, 0),
 		PublicKeyChat:  make([]byte, 0),
 	}
