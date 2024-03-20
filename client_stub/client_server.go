@@ -12,6 +12,8 @@ import (
 	"securechat-server/globals"
 	"securechat-server/server/dht/records"
 	requests "securechat-server/server/types"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -179,18 +181,24 @@ func NewGRPCClientServer(requests chan<- requests.Request, response <-chan recor
 // ipToUint32
 // Convert net.IP to uint32
 func ipToUint32(addr net.Addr) uint32 {
-	ipAddr, ok := addr.(*net.TCPAddr)
+	ip, ok := addr.(*net.IPAddr)
 	if !ok {
-		return 0
-	}
-	ip := ipAddr.IP
-
-	if ip == nil {
-
+		panic("Invalid net.Addr type, must be net.IPAddr")
 	}
 
-	// TODO: Convert IP to uint32
-	return 0
+	ipString := ip.IP.String()
+
+	octets := strings.Split(ipString, ".")
+	var result uint32
+	for i, octet := range octets {
+		octetVal, err := strconv.Atoi(octet)
+		if err != nil {
+			panic(err)
+		}
+		result |= octetVal << ((3 - i) * 8)
+	}
+
+	return result
 }
 
 func (s *GRPCServer) getUser(username string) records.Record {
