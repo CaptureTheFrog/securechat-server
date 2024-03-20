@@ -19,19 +19,28 @@ func (s *Server) Maintain() {
 		if pred == nil {
 			predName = "null"
 		} else {
-			predName = pred.name
+			predName = pred.Name
 		}
 
 		if succ == nil {
 			succName = "null"
 		} else {
-			succName = succ.name
+			succName = succ.Name
 		}
 
 		fmt.Printf("\nPredecessor: %s\n", predName)
 		fmt.Printf("Successor: %s\n", succName)
+		s.printRecords()
 
 		// sleep for 5 seconds
 		time.Sleep(10 * time.Second)
+	}
+}
+
+func (s *Server) printRecords() {
+	fmt.Printf("Records:\n")
+	for _, v := range s.records.GetAll() {
+		fmt.Printf("\t")
+		v.Print()
 	}
 }

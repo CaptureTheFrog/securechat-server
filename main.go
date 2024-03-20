@@ -6,6 +6,7 @@ import (
 	. "securechat-server/client_stub"
 	. "securechat-server/globals"
 	server "securechat-server/server"
+	"securechat-server/server/dht/records"
 	"securechat-server/server/types"
 )
 
@@ -28,11 +29,11 @@ func main() {
 
 	flag.Parse()
 
-	fmt.Printf("Server Address: %s:%d\n", ServerAddress, GRPCPort)
+	fmt.Printf("Server Address: %s:%d\tClient Port:%d\n", ServerAddress, GRPCPort, ClientPort)
 
 	// Make channel for sending requests and receiving responses from client-server GRPC stub
 	requests := make(chan types.Request, 10)
-	response := make(chan types.Record, 10)
+	response := make(chan records.Record, 10)
 
 	s := server.NewServer(requests, response)
 

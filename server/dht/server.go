@@ -7,13 +7,16 @@ import (
 	"net"
 	"securechat-server/globals"
 	pb "securechat-server/server/dht/grpc"
+	"securechat-server/server/dht/records"
+	"securechat-server/server/dht/types"
 	"sync"
 )
 
 type Server struct {
-	id          *ID
-	predecessor *ID
-	fingerTable *FingerTable
+	id          *types.ID
+	predecessor *types.ID
+	fingerTable *types.FingerTable
+	records     *records.Records
 	mu          sync.Mutex
 	pb.UnimplementedServerCommsServer
 }
@@ -24,7 +27,7 @@ This function creates a new DHT server struct and starts the internal gRPC serve
 Depending on the method flag, the server will either create a new network or join an existing one.
 */
 func NewDHTServer(addr string) {
-	server := &Server{id: NewID(addr), fingerTable: NewFingerTable()}
+	server := &Server{id: types.NewID(addr), fingerTable: types.NewFingerTable(), records: records.NewRecords()}
 	s := grpc.NewServer()
 
 	// Create listener on the port flagged (default 50051)
@@ -60,11 +63,11 @@ func NewDHTServer(addr string) {
 	}
 }
 
-func (s *Server) Successor() *ID {
-	return s.fingerTable.getEntry(1)
+func (s *Server) Successor() *types.ID {
+	return s.fingerTable.GetEntry(1)
 }
 
-func (s *Server) Predecessor() *ID {
+func (s *Server) Predecessor() *types.ID {
 	return s.predecessor
 }
 
@@ -98,16 +101,16 @@ func (s *Server) JoinNetwork() {
 	}
 
 	// Convert successor from grpc.ID (rpc schema) to dht.ID
-	successor := NewID(*succ.Address)
+	successor := types.NewID(*succ.Address)
 
 	client, err = CreateGRPCClient(*succ.Address)
 	if err != nil {
 		log.Fatalf("failed to join network 3: %v", err)
 	}
-	var predecessor *ID
+	var predecessor *types.ID
 
 	// If there is only one server in the network (the pre-existing server is its own successor and predecessor)
-	if globals.JoinAddress == successor.name {
+	if globals.JoinAddress == successor.Name {
 		println("only one server in network")
 		// The pre-existing server will be this new server's predecessor and successor
 		predecessor = successor
@@ -117,7 +120,7 @@ func (s *Server) JoinNetwork() {
 		if err != nil {
 			log.Fatalf("failed to join network 4: %v", err)
 		}
-		predecessor = NewID(*pred.Address)
+		predecessor = types.NewID(*pred.Address)
 	}
 
 	// Change the successor's predecessor to this
@@ -128,7 +131,7 @@ func (s *Server) JoinNetwork() {
 	client.Cancel()
 
 	// Tell successor's previous predecessor that this server is the new successor
-	client, err = CreateGRPCClient(predecessor.name)
+	client, err = CreateGRPCClient(predecessor.Name)
 	if err != nil {
 		log.Fatalf("failed to join network: %v", err)
 	}
@@ -139,7 +142,7 @@ func (s *Server) JoinNetwork() {
 	client.Cancel()
 
 	// Update the finger table and predecessor field
-	s.fingerTable.addEntry(1, successor)
+	s.fingerTable.AddEntry(1, successor)
 	s.predecessor = predecessor
 
 	println("done")
@@ -149,5 +152,5 @@ func (s *Server) JoinNetwork() {
 // This function is called when the server is the first in the network.
 // It creates the network and adds itself to the finger table as its own successor.
 func (s *Server) CreateNetwork() {
-	s.fingerTable.addEntry(1, s.id)
+	s.fingerTable.AddEntry(1, s.id)
 }

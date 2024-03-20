@@ -1,4 +1,4 @@
-package dht
+package types
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 type ID struct {
 	// ID is the unique identifier for a node in the DHT.
 	ID   [20]byte
-	name string
+	Name string
 }
 
 func NewID(name string) *ID {
@@ -22,7 +22,7 @@ func NewID(name string) *ID {
 	copyBytes := make([]byte, 20)
 	copy(copyBytes, hashedBytes[:])
 
-	return &ID{ID: [20]byte(copyBytes), name: name}
+	return &ID{ID: [20]byte(copyBytes), Name: name}
 }
 
 func IDFromGRPC(id *grpc.ID) *ID {
@@ -30,7 +30,7 @@ func IDFromGRPC(id *grpc.ID) *ID {
 		return &ID{}
 	}
 
-	return &ID{ID: [20]byte(id.Id), name: *id.Address}
+	return &ID{ID: [20]byte(id.Id), Name: *id.Address}
 }
 
 func (id *ID) Equals(otherId *ID) bool {
@@ -55,7 +55,7 @@ func (id *ID) IsBetween(start *ID, end *ID) bool {
 }
 
 func (id *ID) ToGRPC() *grpc.ID {
-	return &grpc.ID{Address: &id.name, Id: id.ID[:]}
+	return &grpc.ID{Address: &id.Name, Id: id.ID[:]}
 }
 
 type FingerTable struct {
@@ -66,10 +66,10 @@ func NewFingerTable() *FingerTable {
 	return &FingerTable{entries: make(map[int]*ID)}
 }
 
-func (ft *FingerTable) addEntry(index int, id *ID) {
+func (ft *FingerTable) AddEntry(index int, id *ID) {
 	ft.entries[index] = id
 }
 
-func (ft *FingerTable) getEntry(index int) *ID {
+func (ft *FingerTable) GetEntry(index int) *ID {
 	return ft.entries[index]
 }
