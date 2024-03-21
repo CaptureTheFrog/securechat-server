@@ -228,7 +228,7 @@ func ipToUint32(addr net.Addr) uint32 {
 		if err != nil {
 			panic(err)
 		}
-		result |= octetVal << ((3 - i) * 8)
+		result |= uint32(octetVal) << ((3 - i) * 8)
 	}
 
 	return result
