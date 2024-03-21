@@ -1,6 +1,8 @@
 package client_stub
 
 import (
+	"crypto/rand"
+	"math/big"
 	"net"
 	"securechat-server/server/dht/records"
 	"sync"
@@ -40,7 +42,10 @@ func (c *Challenges) Remove(addr net.Addr) {
 
 // GenerateRandomChallenge
 // Generates a random 64 bit cryptographically secure challenge
-func GenerateRandomChallenge() uint64 {
-	//TODO: Cryptographically secure random
-	return 1
+func GenerateRandomChallenge() (uint64, error) {
+	randomNumber, err := rand.Int(rand.Reader, new(big.Int).SetUint64(^uint64(0)))
+	if err != nil {
+		return 0, err
+	}
+	return randomNumber.Uint64(), nil
 }

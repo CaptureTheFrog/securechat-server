@@ -48,9 +48,14 @@ func (s *GRPCServer) SignUp(ctx context.Context, request *grpc.SignUpRequest) (*
 		PublicKeyLogin: request.PublicKeyLogin,
 	}
 
+	randChal, err := GenerateRandomChallenge()
+	if err != nil {
+		panic("Failed to generate challenge")
+	}
+
 	// Create challenge struct
 	chal := Challenge{
-		C: GenerateRandomChallenge(),
+		C: randChal,
 		R: record,
 	}
 
@@ -166,7 +171,18 @@ func (s *GRPCServer) FindUser(ctx context.Context, request *grpc.FindUserRequest
 	// Create record struct
 	record := s.getUser(request.Username)
 
-	// TODO: Verify digital signature
+	// Verify digital signature using public key stored in record
+	publicKeyLogin, err := x509.ParsePKCS1PublicKey(record.PublicKeyLogin)
+	if err != nil {
+		panic("Failed to parse RSA public key")
+	}
+	message := []byte(request.Username)
+	verified := verifySignature(message, request.DigitalSignature.Signature, publicKeyLogin)
+
+	// if not verified, send error
+	if !verified {
+		return nil, status.Error(codes.PermissionDenied, "Invalid signature")
+	}
 
 	if record.Username == "" {
 		return nil, status.Error(codes.NotFound, "User not found")
