@@ -2,11 +2,17 @@ package client_stub
 
 import (
 	"context"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
 	"fmt"
 	ggrpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+	"math/big"
 	"net"
 	"securechat-server/client_stub/grpc"
 	"securechat-server/globals"
@@ -48,8 +54,15 @@ func (s *GRPCServer) SignUp(ctx context.Context, request *grpc.SignUpRequest) (*
 		R: record,
 	}
 
-	//TODO: Encrypt challenge with public key
-	encryptedChal := chal.C
+	publicKeyLogin, err := x509.ParsePKCS1PublicKey(request.PublicKeyLogin)
+	if err != nil {
+		panic("Failed to parse RSA public key")
+	}
+
+	encryptedChal, err := encryptUint64(chal.C, publicKeyLogin)
+	if err != nil {
+		return nil, err
+	}
 
 	// Add challenge to map
 	s.Challenges.Add(ip, chal)
@@ -110,8 +123,12 @@ func (s *GRPCServer) Login(ctx context.Context, request *grpc.LoginRequest) (*gr
 	user := s.getUser(username)
 
 	// Verify digital signature using public key stored in record
-	// TODO: Verify digital signature
-	verified := true
+	publicKeyLogin, err := x509.ParsePKCS1PublicKey(user.PublicKeyLogin)
+	if err != nil {
+		panic("Failed to parse RSA public key")
+	}
+	message := []byte(strings.Join([]string{request.Username, uint32ToIp(request.Address).String()}, ";"))
+	verified := verifySignature(message, request.DigitalSignature.Signature, publicKeyLogin)
 
 	// if not verified, send error
 	if !verified {
@@ -201,6 +218,18 @@ func ipToUint32(addr net.Addr) uint32 {
 	return result
 }
 
+// uint32ToIp
+// Convert uint32 to net.IP
+func uint32ToIp(value uint32) net.IP {
+	ip := make(net.IP, 4)
+	for i := 0; i < 4; i++ {
+		shift := uint(8 * (3 - i))
+		octet := byte((value >> shift) & 0xFF)
+		ip[i] = octet
+	}
+	return ip
+}
+
 func (s *GRPCServer) getUser(username string) records.Record {
 	// Create record struct
 	record := records.Record{
@@ -230,4 +259,21 @@ func getClientIP(ctx context.Context) net.Addr {
 		return peerAddr.Addr
 	}
 	return nil
+}
+
+func verifySignature(message []byte, signature []byte, publicKey *rsa.PublicKey) bool {
+	hashed := sha256.Sum256(message)
+	err := rsa.VerifyPSS(publicKey, crypto.SHA256, hashed[:], signature, nil)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+func encryptUint64(value uint64, publicKey *rsa.PublicKey) ([]byte, error) {
+	ciphertext, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, publicKey, new(big.Int).SetUint64(value).Bytes(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return ciphertext, nil
 }
