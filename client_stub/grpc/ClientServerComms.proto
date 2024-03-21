@@ -17,11 +17,11 @@ message SignUpRequest{
 }
 
 message SignUpResponse{
-	bytes challenge = 1;
+	fixed64 challenge = 1;
 }
 
 message SignUpChallengeResponseRequest{
-	bytes challenge_response = 1;
+	fixed64 challenge_response = 1;
 }
 
 message SignUpChallengeResponseResponse{
@@ -46,7 +46,7 @@ message FindUserRequest{
 message FindUserResponse{
 	string username = 1;
 	fixed32 address = 2;
-	bytes publicKeyChat = 3;
+	bytes publicKey = 3;
 }
 
 message DigitalSignature{
