@@ -133,7 +133,7 @@ func (s *GRPCServer) Login(ctx context.Context, request *grpc.LoginRequest) (*gr
 		panic("Failed to parse RSA public key")
 	}
 	message := []byte(strings.Join([]string{request.Username, uint32ToIp(request.Address).String()}, ";"))
-	verified := verifySignature(message, request.DigitalSignature.Signature, publicKeyLogin)
+	verified := verifySignature(message, request.DigitalSignatureSignature, publicKeyLogin)
 
 	// if not verified, send error
 	if !verified {
@@ -177,7 +177,7 @@ func (s *GRPCServer) FindUser(ctx context.Context, request *grpc.FindUserRequest
 		panic("Failed to parse RSA public key")
 	}
 	message := []byte(request.Username)
-	verified := verifySignature(message, request.DigitalSignature.Signature, publicKeyLogin)
+	verified := verifySignature(message, request.DigitalSignatureSignature, publicKeyLogin)
 
 	// if not verified, send error
 	if !verified {
