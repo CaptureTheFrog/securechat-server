@@ -123,7 +123,7 @@ func (s *GRPCServer) Login(ctx context.Context, request *grpc.LoginRequest) (*gr
 		panic("Failed to parse RSA public key")
 	}
 	message := []byte(strings.Join([]string{request.Username, uint32ToIp(request.Address).String()}, ";"))
-	verified := verifySignature(message, request.DigitalSignatureSignature, publicKeyLogin)
+	verified := verifySignature(message, request.DigitalSignature.Signature, publicKeyLogin)
 
 	// if not verified, send error
 	if !verified {
@@ -160,7 +160,7 @@ FindUser takes a username and returns the record associated with that username.
 func (s *GRPCServer) FindUser(ctx context.Context, request *grpc.FindUserRequest) (*grpc.FindUserResponse, error) {
 	// Create record struct
 	record := s.getUser(request.Username)
-	sender := s.getUser(request.DigitalSignatureUsername)
+	sender := s.getUser(request.DigitalSignature.Username)
 
 	// Verify digital signature using public key stored in record
 	publicKeyLogin, err := x509.ParsePKCS1PublicKey(sender.PublicKeyLogin)
@@ -168,7 +168,7 @@ func (s *GRPCServer) FindUser(ctx context.Context, request *grpc.FindUserRequest
 		panic("Failed to parse RSA public key")
 	}
 	message := []byte(request.Username)
-	verified := verifySignature(message, request.DigitalSignatureSignature, publicKeyLogin)
+	verified := verifySignature(message, request.DigitalSignature.Signature, publicKeyLogin)
 
 	// if not verified, send error
 	if !verified {
