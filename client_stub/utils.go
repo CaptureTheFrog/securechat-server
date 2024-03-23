@@ -78,13 +78,8 @@ func uint32ToIp(value uint32) net.IP {
 
 // ipToUint32
 // Convert net.IP to uint32
-func ipToUint32(addr net.Addr) uint32 {
-	ip, ok := addr.(*net.IPAddr)
-	if !ok {
-		panic("Invalid net.Addr type, must be net.IPAddr")
-	}
-
-	ipString := ip.IP.String()
+func ipToUint32(addr *net.TCPAddr) uint32 {
+	ipString := addr.IP.String()
 
 	octets := strings.Split(ipString, ".")
 	var result uint32
