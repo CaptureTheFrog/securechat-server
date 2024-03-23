@@ -32,6 +32,8 @@ It generates a cryptographically secure challenge and sends it back to the clien
 It then adds the challenge to the map of challenges, so that it can then be verified later once the client responds.
 */
 func (s *GRPCServer) SignUp(ctx context.Context, request *grpc.SignUpRequest) (*grpc.SignUpResponse, error) {
+	// TODO: Check if user already exists
+
 	// Get IP address of the client
 	ip := getClientIP(ctx)
 	// Create record struct
@@ -113,18 +115,16 @@ If the digital signature is verified, the server updates the IP address in the r
 If the digital signature is not verified, the server sends an error response to the client.
 */
 func (s *GRPCServer) Login(ctx context.Context, request *grpc.LoginRequest) (*grpc.LoginResponse, error) {
-	username := request.Username
-
 	// Get record from server
-	user := s.getUser(username)
+	user := s.getUser(request.DigitalSignature.Username)
 
 	// Verify digital signature using public key stored in record
-	publicKeyLogin, err := x509.ParsePKCS1PublicKey(user.PublicKeyLogin)
+	publicKeyLogin, err := x509.ParsePKIXPublicKey(user.PublicKeyLogin)
 	if err != nil {
-		return nil, status.Error(codes.FailedPrecondition, "Bad public key for signature")
+		return nil, status.Error(codes.FailedPrecondition, "Invalid signature")
 	}
 	message := []byte(strings.Join([]string{request.Username, uint32ToIp(request.Address).String()}, ";"))
-	verified := verifySignature(message, request.DigitalSignature.Signature, publicKeyLogin)
+	verified := verifySignature(message, request.DigitalSignature.Signature, publicKeyLogin.(*rsa.PublicKey))
 
 	// if not verified, send error
 	if !verified {
@@ -164,12 +164,12 @@ func (s *GRPCServer) FindUser(ctx context.Context, request *grpc.FindUserRequest
 	sender := s.getUser(request.DigitalSignature.Username)
 
 	// Verify digital signature using public key stored in record
-	publicKeyLogin, err := x509.ParsePKCS1PublicKey(sender.PublicKeyLogin)
+	publicKeyLogin, err := x509.ParsePKIXPublicKey(sender.PublicKeyLogin)
 	if err != nil {
 		return nil, status.Error(codes.FailedPrecondition, "Bad public key for signature")
 	}
 	message := []byte(request.Username)
-	verified := verifySignature(message, request.DigitalSignature.Signature, publicKeyLogin)
+	verified := verifySignature(message, request.DigitalSignature.Signature, publicKeyLogin.(*rsa.PublicKey))
 
 	// if not verified, send error
 	if !verified {
