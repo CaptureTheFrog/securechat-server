@@ -89,8 +89,8 @@ func (s *GRPCServer) SignUpChallengeResponse(ctx context.Context, request *grpc.
 	s.Challenges.Remove(ip)
 
 	// Decrypt challenge response with public key and verify
-	publicKeyLogin, err := x509.ParsePKCS1PublicKey(chal.R.PublicKeyLogin)
-	if err != nil || !verifySignature(uint64ToBytes(chal.C-1), request.ChallengeResponse, publicKeyLogin) {
+	publicKeyLogin, err := x509.ParsePKIXPublicKey(chal.R.PublicKeyLogin)
+	if err != nil || !verifySignature(uint64ToBytes(chal.C-1), request.ChallengeResponse, publicKeyLogin.(*rsa.PublicKey)) {
 		return nil, status.Error(codes.PermissionDenied, "Invalid")
 	}
 
