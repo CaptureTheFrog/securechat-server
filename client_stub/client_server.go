@@ -2,7 +2,9 @@ package client_stub
 
 import (
 	"context"
+	"crypto/rsa"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	ggrpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -36,7 +38,7 @@ func (s *GRPCServer) SignUp(ctx context.Context, request *grpc.SignUpRequest) (*
 	// Create record struct
 	record := records.Record{
 		Username:       request.Username,
-		Address:        ipToUint32(ip),
+		Address:        ipToUint32(ip.(*net.TCPAddr)),
 		PublicKeyChat:  request.PublicKeyChat,
 		PublicKeyLogin: request.PublicKeyLogin,
 	}
@@ -52,9 +54,21 @@ func (s *GRPCServer) SignUp(ctx context.Context, request *grpc.SignUpRequest) (*
 		R: record,
 	}
 
-	publicKeyLogin, err := x509.ParsePKCS1PublicKey(request.PublicKeyLogin)
+	block, _ := pem.Decode(request.PublicKeyLogin)
+	if block == nil {
+		panic("Failed to decode PEM block")
+	}
+
+	// Parse the RSA public key
+	pubkey, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
 		panic("Failed to parse RSA public key")
+	}
+
+	// Assert the public key type
+	publicKeyLogin, ok := pubkey.(*rsa.PublicKey)
+	if !ok {
+		panic("Failed to assert RSA public key")
 	}
 
 	encryptedChal, err := encryptUint64(chal.C, publicKeyLogin)
