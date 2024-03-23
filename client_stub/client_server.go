@@ -2,6 +2,7 @@ package client_stub
 
 import (
 	"context"
+	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
 	ggrpc "google.golang.org/grpc"
@@ -52,12 +53,12 @@ func (s *GRPCServer) SignUp(ctx context.Context, request *grpc.SignUpRequest) (*
 		R: record,
 	}
 
-	publicKeyLogin, err := x509.ParsePKCS1PublicKey(request.PublicKeyLogin)
+	publicKeyLogin, err := x509.ParsePKIXPublicKey(request.PublicKeyLogin)
 	if err != nil {
 		panic("Failed to parse RSA public key")
 	}
 
-	encryptedChal, err := encryptUint64(chal.C, publicKeyLogin)
+	encryptedChal, err := encryptUint64(chal.C, publicKeyLogin.(*rsa.PublicKey))
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +121,7 @@ func (s *GRPCServer) Login(ctx context.Context, request *grpc.LoginRequest) (*gr
 	// Verify digital signature using public key stored in record
 	publicKeyLogin, err := x509.ParsePKCS1PublicKey(user.PublicKeyLogin)
 	if err != nil {
-		panic("Failed to parse RSA public key")
+		return nil, status.Error(codes.FailedPrecondition, "Bad public key for signature")
 	}
 	message := []byte(strings.Join([]string{request.Username, uint32ToIp(request.Address).String()}, ";"))
 	verified := verifySignature(message, request.DigitalSignature.Signature, publicKeyLogin)
@@ -165,7 +166,7 @@ func (s *GRPCServer) FindUser(ctx context.Context, request *grpc.FindUserRequest
 	// Verify digital signature using public key stored in record
 	publicKeyLogin, err := x509.ParsePKCS1PublicKey(sender.PublicKeyLogin)
 	if err != nil {
-		panic("Failed to parse RSA public key")
+		return nil, status.Error(codes.FailedPrecondition, "Bad public key for signature")
 	}
 	message := []byte(request.Username)
 	verified := verifySignature(message, request.DigitalSignature.Signature, publicKeyLogin)
@@ -192,7 +193,7 @@ func NewGRPCClientServer(requests chan<- requests.Request, response <-chan recor
 
 	grpc.RegisterClientServerCommsServer(s, &server)
 
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", globals.ServerAddress, globals.ClientPort))
+	lis, err := net.Listen("tcp4", fmt.Sprintf("%s:%d", globals.ServerAddress, globals.ClientPort))
 	if err != nil {
 		panic(err)
 	}
