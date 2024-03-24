@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"google.golang.org/grpc/peer"
-	"math/big"
 	"net"
 	"securechat-server/server/dht/records"
 	requests "securechat-server/server/types"
@@ -57,7 +56,10 @@ func verifySignature(message []byte, signature []byte, publicKey *rsa.PublicKey)
 }
 
 func encryptUint64(value uint64, publicKey *rsa.PublicKey) ([]byte, error) {
-	ciphertext, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, publicKey, new(big.Int).SetUint64(value).Bytes(), nil)
+	// force little endian
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, value)
+	ciphertext, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, publicKey, buf, nil)
 	if err != nil {
 		return nil, err
 	}
