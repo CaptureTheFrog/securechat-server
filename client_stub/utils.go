@@ -104,6 +104,6 @@ func ipToUint32(addr net.Addr) uint32 {
 // Function to convert uint64 to bytes
 func uint64ToBytes(value uint64) []byte {
 	bytes := make([]byte, 8) // 8 bytes for uint64
-	binary.BigEndian.PutUint64(bytes, value)
+	binary.LittleEndian.PutUint64(bytes, value)
 	return bytes
 }
