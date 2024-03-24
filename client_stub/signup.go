@@ -43,9 +43,9 @@ func (c *Challenges) Remove(addr net.Addr) {
 // GenerateRandomChallenge
 // Generates a random 64 bit cryptographically secure challenge
 func GenerateRandomChallenge() (uint64, error) {
-	randomNumber, err := rand.Int(rand.Reader, new(big.Int).SetUint64(^uint64(0)))
+	randomNumber, err := rand.Int(rand.Reader, new(big.Int).SetUint64((^uint64(0))-1))
 	if err != nil {
 		return 0, err
 	}
-	return randomNumber.Uint64(), nil
+	return randomNumber.Uint64() + 1, nil
 }
