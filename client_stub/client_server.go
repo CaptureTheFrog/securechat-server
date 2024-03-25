@@ -1,6 +1,7 @@
 package client_stub
 
 import (
+	"bytes"
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
@@ -8,7 +9,9 @@ import (
 	ggrpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"io"
 	"net"
+	"net/http"
 	"securechat-server/client_stub/grpc"
 	"securechat-server/globals"
 	"securechat-server/server/dht/records"
@@ -134,6 +137,44 @@ func (s *GRPCServer) Login(ctx context.Context, request *grpc.LoginRequest) (*gr
 	// If user doesn't exist, send error
 	if user.Username == "" {
 		return nil, status.Error(codes.NotFound, "User not found")
+	}
+
+	// challenge IP so the client proves it exists
+	c_int, err := GenerateRandomChallenge()
+	if err != nil {
+		return nil, status.Error(codes.ResourceExhausted, "Error generating challenge")
+	}
+
+	c, err := encryptUint64(c_int, publicKeyLogin.(*rsa.PublicKey))
+
+	url := fmt.Sprintf("http://%s:6500/challenge/%d", uint32ToIp(request.Address), request.ChallengeNonce)
+	hreq, err := http.NewRequest("POST", url, bytes.NewBuffer(c))
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "Error sending challenge to client")
+	}
+
+	// Set the request content type
+	hreq.Header.Set("Content-Type", "application/octet-stream")
+
+	// Create an HTTP client
+	client := &http.Client{}
+
+	// Send the request
+	resp, err := client.Do(hreq)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "Error sending challenge to client")
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	responseBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, status.Error(codes.Unknown, "Error reading challenge response")
+	}
+
+	verified = verifySignature(uint64ToBytes(c_int-1), responseBytes, publicKeyLogin.(*rsa.PublicKey))
+	if !verified {
+		return nil, status.Error(codes.PermissionDenied, "Invalid signature")
 	}
 
 	// Update IP address in record

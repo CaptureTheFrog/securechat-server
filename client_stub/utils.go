@@ -55,15 +55,19 @@ func verifySignature(message []byte, signature []byte, publicKey *rsa.PublicKey)
 	return true
 }
 
-func encryptUint64(value uint64, publicKey *rsa.PublicKey) ([]byte, error) {
-	// force little endian
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, value)
-	ciphertext, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, publicKey, buf, nil)
+func encryptPlaintext(plaintext []byte, publicKey *rsa.PublicKey) ([]byte, error) {
+	ciphertext, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, publicKey, plaintext, nil)
 	if err != nil {
 		return nil, err
 	}
 	return ciphertext, nil
+}
+
+func encryptUint64(value uint64, publicKey *rsa.PublicKey) ([]byte, error) {
+	// force little endian
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, value)
+	return encryptPlaintext(buf, publicKey)
 }
 
 // uint32ToIp
