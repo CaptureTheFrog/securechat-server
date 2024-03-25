@@ -3,6 +3,8 @@ package dht
 import (
 	"fmt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 	"net"
 	"securechat-server/globals"
@@ -17,7 +19,7 @@ type Server struct {
 	predecessor *types.ID
 	fingerTable *types.FingerTable
 	records     *records.Records
-	mu          sync.Mutex
+	mu          sync.RWMutex
 	pb.UnimplementedServerCommsServer
 }
 
@@ -64,10 +66,14 @@ func NewDHTServer(addr string) {
 }
 
 func (s *Server) Successor() *types.ID {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.fingerTable.GetEntry(1)
 }
 
 func (s *Server) Predecessor() *types.ID {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.predecessor
 }
 
@@ -109,25 +115,29 @@ func (s *Server) JoinNetwork() {
 	}
 	var predecessor *types.ID
 
-	// If there is only one server in the network (the pre-existing server is its own successor and predecessor)
-	if globals.JoinAddress == successor.Name {
-		println("only one server in network")
-		// The pre-existing server will be this new server's predecessor and successor
-		predecessor = successor
-	} else {
-		// Ask successor for their predecessor
-		pred, err := client.GetPredecessor(client.Ctx, succ)
-		if err != nil {
+	// Get predecessor
+	// Server returns NotFound error if it is the only one in the network
+	pred, err := client.GetPredecessor(client.Ctx, succ)
+	if err != nil {
+		// If the server is the only one in the network, it returns not found because it doesn't have a predecessor
+		if status.Code(err) != codes.NotFound {
 			log.Fatalf("failed to join network 4: %v", err)
+		} else {
+			// Set predecessor to the successor if the server is the only one in the network
+			predecessor = successor
 		}
+	} else {
 		predecessor = types.NewID(*pred.Address)
 	}
 
 	// Change the successor's predecessor to this
-	client.ChangePredecessor(client.Ctx, &pb.ChangePredecessor{
+	_, err = client.ChangePredecessor(client.Ctx, &pb.ChangePredecessor{
 		Id:             succ,
 		NewPredecessor: s.id.ToGRPC(),
 	})
+	if err != nil {
+		log.Printf("failed to join network 5: %v", err)
+	}
 	client.Cancel()
 
 	// Tell successor's previous predecessor that this server is the new successor
@@ -135,10 +145,13 @@ func (s *Server) JoinNetwork() {
 	if err != nil {
 		log.Fatalf("failed to join network: %v", err)
 	}
-	client.ChangeSuccessor(client.Ctx, &pb.ChangeSuccessor{
+	_, err = client.ChangeSuccessor(client.Ctx, &pb.ChangeSuccessor{
 		Id:           predecessor.ToGRPC(),
 		NewSuccessor: s.id.ToGRPC(),
 	})
+	if err != nil {
+		log.Printf("failed to join network 5: %v", err)
+	}
 	client.Cancel()
 
 	// Update the finger table and predecessor field
@@ -153,4 +166,16 @@ func (s *Server) JoinNetwork() {
 // It creates the network and adds itself to the finger table as its own successor.
 func (s *Server) CreateNetwork() {
 	s.fingerTable.AddEntry(1, s.id)
+}
+
+func (s *Server) UpdatePredecessor(newPredecessor *types.ID) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.predecessor = newPredecessor
+}
+
+func (s *Server) UpdateSuccessor(newSuccessor *types.ID) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.fingerTable.AddEntry(1, newSuccessor)
 }

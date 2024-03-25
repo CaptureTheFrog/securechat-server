@@ -3,7 +3,9 @@ package dht
 import (
 	"context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	pb "securechat-server/server/dht/grpc"
 	"securechat-server/server/dht/records"
 	"securechat-server/server/dht/types"
@@ -15,8 +17,8 @@ import (
  Returns successor of the ID passed as parameter
 */
 func (s *Server) GetSuccessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
 	succ := s.Successor()
 
@@ -56,10 +58,13 @@ func (s *Server) GetSuccessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
 }
 
 func (s *Server) GetPredecessor(ctx context.Context, id *pb.ID) (*pb.ID, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
 	pred := s.predecessor
+	if pred == nil {
+		return nil, status.Error(codes.NotFound, "Empty network. No predecessor found.")
+	}
 
 	// If the request is asking for this node's predecessor
 	if s.id.Equals(types.IDFromGRPC(id)) || *id.Address == "" {
@@ -143,8 +148,8 @@ func (s *Server) ChangePredecessor(ctx context.Context, predecessor *pb.ChangePr
 }
 
 func (s *Server) Get(ctx context.Context, id *pb.ID) (*pb.Record, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
 	dhtID := types.IDFromGRPC(id)
 
@@ -205,6 +210,7 @@ type GRPCClient struct {
 	pb.ServerCommsClient
 	Ctx    context.Context
 	Cancel context.CancelFunc
+	Addr   string
 }
 
 func CreateGRPCClient(addr string) (GRPCClient, error) {
@@ -221,5 +227,6 @@ func CreateGRPCClient(addr string) (GRPCClient, error) {
 		ServerCommsClient: client,
 		Ctx:               ctx,
 		Cancel:            cancel,
+		Addr:              conn.Target(),
 	}, nil
 }
