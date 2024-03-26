@@ -151,7 +151,7 @@ func (s *Server) Get(ctx context.Context, id *pb.ID) (*pb.Record, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	dhtID := types.IDFromGRPC(id)
+	dhtID := types.NewID(*id.Address)
 
 	// If id is between this node and its successor
 	// or if this is the only node in the network (therefore all records should be stored here)
@@ -178,14 +178,13 @@ func (s *Server) Get(ctx context.Context, id *pb.ID) (*pb.Record, error) {
 }
 
 func (s *Server) Put(ctx context.Context, record *pb.Record) (*pb.Response, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
+	thisSuccessor := s.Successor()
 	dhtID := types.NewID(*record.Username)
 
 	// If id is between this node and its successor
 	// or if this is the only node in the network (therefore all records should be stored here)
-	if dhtID.IsBetween(s.id, s.Successor()) || s.isOnlyNodeInNetwork() {
+	if dhtID.IsBetween(s.id, thisSuccessor) || s.isOnlyNodeInNetwork() {
+		s.mu.Lock()
 		// Store record
 		s.records.Add(records.Record{
 			Username:       *record.Username,
@@ -193,6 +192,7 @@ func (s *Server) Put(ctx context.Context, record *pb.Record) (*pb.Response, erro
 			PublicKeyLogin: record.PublicKeyLogin,
 			PublicKeyChat:  record.PublicKeyChat,
 		})
+		s.mu.Unlock()
 		return &pb.Response{}, nil
 	}
 

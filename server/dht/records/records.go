@@ -6,22 +6,22 @@ import (
 )
 
 type Records struct {
-	records map[*types.ID]Record
+	records map[types.ID]Record
 }
 
 func NewRecords() *Records {
-	return &Records{records: make(map[*types.ID]Record)}
+	return &Records{records: make(map[types.ID]Record)}
 }
 
 func (r *Records) Add(record Record) {
 	id := types.NewID(record.Username)
-	r.records[id] = record
+	r.records[*id] = record
 }
 
 func (r *Records) Get(id *types.ID) Record {
 	// loop through records and find the one with the same id
 	for k, v := range r.records {
-		if k.Equals(id) {
+		if (&k).Equals(id) {
 			return v
 		}
 	}
@@ -29,7 +29,7 @@ func (r *Records) Get(id *types.ID) Record {
 	return *NewRecord()
 }
 
-func (r *Records) GetAll() map[*types.ID]Record {
+func (r *Records) GetAll() map[types.ID]Record {
 	return r.records
 }
 

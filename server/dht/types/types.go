@@ -29,8 +29,10 @@ func IDFromGRPC(id *grpc.ID) *ID {
 	if *id.Address == "" {
 		return &ID{}
 	}
+	var idBytes [20]byte
+	copy(idBytes[:], id.Id)
 
-	return &ID{ID: [20]byte(id.Id), Name: *id.Address}
+	return &ID{ID: idBytes, Name: *id.Address}
 }
 
 func (id *ID) Equals(otherId *ID) bool {
