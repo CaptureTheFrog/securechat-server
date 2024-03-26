@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	ggrpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 	"io"
 	"net"
@@ -230,7 +232,18 @@ func (s *GRPCServer) FindUser(ctx context.Context, request *grpc.FindUserRequest
 
 func NewGRPCClientServer(requests chan<- requests.Request, response <-chan records.Record) {
 	server := GRPCServer{Requests: requests, Response: response, Challenges: NewChallenges()}
-	s := ggrpc.NewServer()
+
+	tlsCert, err := tls.LoadX509KeyPair("certs/server-cert.pem", "certs/server-key.pem")
+	if err != nil {
+		panic(err)
+	}
+
+	config := &tls.Config{
+		Certificates: []tls.Certificate{tlsCert},
+		ClientAuth:   tls.NoClientCert,
+	}
+
+	s := ggrpc.NewServer(ggrpc.Creds(credentials.NewTLS(config)))
 
 	grpc.RegisterClientServerCommsServer(s, &server)
 
