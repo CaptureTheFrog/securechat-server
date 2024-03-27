@@ -3,7 +3,6 @@ package main;
 option go_package = "securechat-server/grpc";
 
 service ServerComms{
-  rpc join(ID) returns (ID);
 
   rpc getSuccessor(ID) returns (ID);
 
@@ -13,11 +12,9 @@ service ServerComms{
 
   rpc changePredecessor(ChangePredecessor) returns (Response);
 
-  rpc hi(test) returns (test);
-}
+  rpc get(ID) returns (Record);
 
-message test{
-  required string message = 1;
+  rpc put(Record) returns (Response);
 }
 
 // ID for server. Contains address and SHA-1 hash of address
@@ -37,4 +34,11 @@ message ChangePredecessor{
 }
 
 message Response{}
+
+message Record{
+  required string username = 1;
+  required fixed32 address = 2;
+  required bytes publicKeyLogin = 3;
+  required bytes publicKeyChat = 4;
+}
 

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option go_package = "securechat-loadbalancer/grpc";
+package main;
+
+service MonitorComms{
+  rpc Inform(Info) returns (MonitorResponse);
+}
+
+message Info{
+  string address = 1;
+  string predecessor = 2;
+  string successor = 3;
+}
+
+message MonitorResponse{}
